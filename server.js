@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 10000;
 // Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_KEY
 );
 
 // Middleware
@@ -75,10 +75,10 @@ async function syncVendasIsaque() {
       nfsProcessadas.add(numero_nf);
     });
 
-    // Prioridade 1: Fretes entregues (que não foram pagos)
+    // Prioridade 1: Todos os fretes (não apenas entregues)
     if (freteData) {
       freteData.forEach(frete => {
-        if (!nfsProcessadas.has(frete.numero_nf) && frete.status === 'ENTREGUE') {
+        if (!nfsProcessadas.has(frete.numero_nf)) {
           registrosParaInserir.push({
             numero_nf: frete.numero_nf,
             origem: 'CONTROLE_FRETE',
