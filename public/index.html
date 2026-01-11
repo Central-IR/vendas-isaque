@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendas</title>
+    <title>Vendas Isaque</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Destaque para linhas PAGAS (verde) */
+        tbody tr.row-pago {
+            background: rgba(34, 197, 94, 0.12) !important;
+            border-left: 3px solid #22C55E;
+        }
+        
+        tbody tr.row-pago:hover {
+            background: rgba(34, 197, 94, 0.18) !important;
+        }
+        
+        tbody tr.row-pago td {
+            color: var(--text-primary);
+        }
+    </style>
 </head>
 <body>
     <div class="splash-screen" id="splashScreen">
@@ -15,7 +30,7 @@
         <div class="container">
             <div class="header">
                 <div class="header-left">
-                    <h1>Vendas</h1>
+                    <h1>Vendas Isaque</h1>
                     <div id="connectionStatus" class="connection-status offline">
                         <span class="status-dot"></span>
                     </div>
