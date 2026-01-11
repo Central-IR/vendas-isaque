@@ -20,7 +20,6 @@ app.use(cors({
   credentials: false
 }));
 
-// Headers adicionais de CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -35,12 +34,12 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static('public'));
 
-// Função para sincronizar dados das tabelas fonte
+// Função para sincronizar dados do Isaque
 async function syncVendasIsaque() {
   try {
     console.log('🔄 Sincronizando dados do Isaque...');
 
-    // 1. Buscar APENAS registros ENTREGUES do Controle de Frete (Isaque)
+    // 1. Buscar TODOS registros do Controle de Frete (Isaque) que estão ENTREGUES
     const { data: freteData, error: freteError } = await supabase
       .from('controle_frete')
       .select('*')
@@ -50,7 +49,7 @@ async function syncVendasIsaque() {
 
     if (freteError) throw freteError;
 
-    // 2. Buscar APENAS registros PAGOS do Contas a Receber (Isaque)
+    // 2. Buscar TODOS registros do Contas a Receber (Isaque) que estão PAGOS
     const { data: contasData, error: contasError } = await supabase
       .from('contas_receber')
       .select('*')
@@ -60,7 +59,7 @@ async function syncVendasIsaque() {
 
     if (contasError) throw contasError;
 
-    // 3. Criar mapa de NFs pagas (PRIORIDADE MÁXIMA)
+    // 3. Criar mapa de NFs pagas (CONTAS_RECEBER tem PRIORIDADE)
     const nfsPagas = new Map();
     if (contasData) {
       contasData.forEach(conta => {
@@ -74,7 +73,7 @@ async function syncVendasIsaque() {
     const registrosParaInserir = [];
     const nfsProcessadas = new Set();
 
-    // PRIORIDADE 1: Contas PAGAS (substituem fretes entregues)
+    // PRIORIDADE 1: Contas PAGAS do Contas a Receber (substituem fretes)
     nfsPagas.forEach((conta, numero_nf) => {
       registrosParaInserir.push({
         numero_nf: numero_nf,
@@ -90,8 +89,7 @@ async function syncVendasIsaque() {
         status_pagamento: conta.status,
         observacoes: conta.observacoes,
         id_contas_receber: conta.id,
-        prioridade: 1,
-        is_pago: true  // Flag para destacar em verde
+        is_pago: true
       });
       nfsProcessadas.add(numero_nf);
     });
@@ -117,15 +115,14 @@ async function syncVendasIsaque() {
             previsao_entrega: frete.previsao_entrega,
             status_frete: frete.status,
             id_controle_frete: frete.id,
-            prioridade: 2,
-            is_pago: false  // Não está pago
+            is_pago: false
           });
           nfsProcessadas.add(frete.numero_nf);
         }
       });
     }
 
-    // 5. Limpar tabela vendas_isaque e inserir novos dados
+    // 5. Limpar tabela e inserir novos dados
     const { error: deleteError } = await supabase
       .from('vendas_isaque')
       .delete()
@@ -133,7 +130,7 @@ async function syncVendasIsaque() {
 
     if (deleteError) console.error('Erro ao limpar tabela:', deleteError);
 
-    // Ordenar por data_emissao CRESCENTE
+    // Ordenar por data_emissao
     registrosParaInserir.sort((a, b) => {
       const dateA = new Date(a.data_emissao);
       const dateB = new Date(b.data_emissao);
@@ -149,8 +146,8 @@ async function syncVendasIsaque() {
     }
 
     console.log(`✅ Sincronização concluída: ${registrosParaInserir.length} registros`);
-    console.log(`   - ${nfsPagas.size} pagas (CONTAS_RECEBER)`);
-    console.log(`   - ${registrosParaInserir.length - nfsPagas.size} entregues (CONTROLE_FRETE)`);
+    console.log(`   - ${nfsPagas.size} pagas (verde)`);
+    console.log(`   - ${registrosParaInserir.length - nfsPagas.size} entregues`);
     
     return { success: true, count: registrosParaInserir.length };
 
@@ -170,16 +167,15 @@ app.get('/api/sync', async (req, res) => {
   }
 });
 
-// GET /api/vendas - Listar todas as vendas do Isaque
+// GET /api/vendas - Listar todas as vendas
 app.get('/api/vendas', async (req, res) => {
   try {
-    // Sincronizar antes de buscar
     await syncVendasIsaque();
 
     const { data, error } = await supabase
       .from('vendas_isaque')
       .select('*')
-      .order('numero_nf', { ascending: true });
+      .order('data_emissao', { ascending: true });
 
     if (error) throw error;
 
@@ -190,7 +186,7 @@ app.get('/api/vendas', async (req, res) => {
   }
 });
 
-// GET /api/dashboard - Dashboard com estatísticas
+// GET /api/dashboard - Dashboard com estatísticas UNIVERSAIS (todos os meses)
 app.get('/api/dashboard', async (req, res) => {
   try {
     await syncVendasIsaque();
@@ -209,14 +205,20 @@ app.get('/api/dashboard', async (req, res) => {
     };
 
     if (data) {
+      // Set para contar NFs únicas
+      const nfsUnicas = new Set();
+
       data.forEach(venda => {
         const valor = parseFloat(venda.valor_nf) || 0;
         
-        // Faturado = tudo
-        stats.faturado += valor;
+        // Faturado = cada NF única conta uma vez
+        if (!nfsUnicas.has(venda.numero_nf)) {
+          stats.faturado += valor;
+          nfsUnicas.add(venda.numero_nf);
+        }
 
-        if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
-          // Pago
+        if (venda.is_pago && venda.data_pagamento) {
+          // Pago (verde)
           stats.pago += valor;
         } else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
           // A receber (entregue mas não pago)
