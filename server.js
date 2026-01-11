@@ -39,12 +39,11 @@ async function syncVendasIsaque() {
   try {
     console.log('🔄 Sincronizando dados do Isaque...');
 
-    // 1. Buscar TODOS registros do Controle de Frete (Isaque) que estão ENTREGUES
+    // 1. Buscar TODOS os registros do Controle de Frete (Isaque) - NÃO filtrar por status
     const { data: freteData, error: freteError } = await supabase
       .from('controle_frete')
       .select('*')
       .eq('vendedor', 'ISAQUE')
-      .eq('status', 'ENTREGUE')
       .order('data_emissao', { ascending: true });
 
     if (freteError) throw freteError;
@@ -94,7 +93,7 @@ async function syncVendasIsaque() {
       nfsProcessadas.add(numero_nf);
     });
 
-    // PRIORIDADE 2: Fretes ENTREGUES (apenas se NÃO estiver pago)
+    // PRIORIDADE 2: TODOS os Fretes (apenas se NÃO estiver pago)
     if (freteData) {
       freteData.forEach(frete => {
         if (!nfsProcessadas.has(frete.numero_nf)) {
