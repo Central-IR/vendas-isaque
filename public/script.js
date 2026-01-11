@@ -177,54 +177,83 @@ function updateMonthDisplay() {
 }
 
 function toggleRelatorioMes() {
-    relatorioMode = !relatorioMode;
+    // Abrir modal com relatório do mês
+    const modal = document.getElementById('relatorioModal');
+    if (!modal) return;
     
-    const mainView = document.getElementById('mainView');
-    const relatorioView = document.getElementById('relatorioView');
-    const splashRelatorio = document.getElementById('splashScreenRelatorio');
-    const mainContainer = relatorioView.querySelector('.container');
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const monthName = months[currentMonth.getMonth()];
+    const year = currentMonth.getFullYear();
     
-    if (relatorioMode) {
-        // Entrando no Relatório Mês - Mostrar splash
-        mainView.style.display = 'none';
-        relatorioView.style.display = 'block';
+    document.getElementById('relatorioModalTitulo').textContent = `Relatório - ${monthName} ${year}`;
+    
+    // Filtrar apenas vendas PAGAS do mês atual
+    let vendasPagas = vendas.filter(v => {
+        if (!v.data_pagamento || v.status_pagamento !== 'PAGO') return false;
         
-        if (mainContainer) mainContainer.style.display = 'none';
-        if (splashRelatorio) {
-            splashRelatorio.style.display = 'flex';
-            
-            setTimeout(() => {
-                splashRelatorio.style.display = 'none';
-                if (mainContainer) mainContainer.style.display = 'block';
-                updateRelatorioMes();
-            }, 3000);
-        } else {
-            if (mainContainer) mainContainer.style.display = 'block';
-            updateRelatorioMes();
-        }
+        const dataPag = new Date(v.data_pagamento);
+        return dataPag.getMonth() === currentMonth.getMonth() &&
+               dataPag.getFullYear() === currentMonth.getFullYear();
+    });
+    
+    const modalBody = document.getElementById('relatorioModalBody');
+    
+    if (vendasPagas.length === 0) {
+        modalBody.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3; margin-bottom: 1rem;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <p style="font-size: 1.1rem; font-weight: 600; margin: 0;">Nenhum Pagamento Encontrado</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Não há pagamentos registrados para ${monthName} ${year}</p>
+            </div>
+        `;
     } else {
-        // Voltando para interface principal - Mostrar splash
-        const splashPrincipal = document.getElementById('splashScreen');
-        const mainContainerPrincipal = mainView.querySelector('.container');
+        // Ordenar por data de pagamento crescente
+        vendasPagas.sort((a, b) => new Date(a.data_pagamento) - new Date(b.data_pagamento));
         
-        relatorioView.style.display = 'none';
-        mainView.style.display = 'block';
+        const rows = vendasPagas.map(venda => `
+            <tr>
+                <td><strong>${venda.numero_nf || '-'}</strong></td>
+                <td>${formatDate(venda.data_emissao)}</td>
+                <td>${venda.nome_orgao || '-'}</td>
+                <td>${formatDate(venda.data_pagamento)}</td>
+            </tr>
+        `).join('');
         
-        if (mainContainerPrincipal) mainContainerPrincipal.style.display = 'none';
-        if (splashPrincipal) {
-            splashPrincipal.style.display = 'flex';
-            
-            setTimeout(() => {
-                splashPrincipal.style.display = 'none';
-                if (mainContainerPrincipal) mainContainerPrincipal.style.display = 'block';
-                updateDisplay();
-            }, 3000);
-        } else {
-            if (mainContainerPrincipal) mainContainerPrincipal.style.display = 'block';
-            updateDisplay();
-        }
+        modalBody.innerHTML = `
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Nº NF</th>
+                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Data Emissão</th>
+                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Órgão</th>
+                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Data Pagamento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    modal.classList.add('show');
+}
+
+function closeRelatorioModal() {
+    const modal = document.getElementById('relatorioModal');
+    if (modal) {
+        modal.classList.remove('show');
     }
 }
+
+window.closeRelatorioModal = closeRelatorioModal;
 
 function updateRelatorioMes() {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
