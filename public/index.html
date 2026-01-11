@@ -8,10 +8,10 @@
 </head>
 <body>
     <div class="splash-screen" id="splashScreen">
-        <h1 class="splash-title">Vendas</h1>
+        <div class="loader"></div>
     </div>
 
-    <div class="app-content">
+    <div class="app-content" id="mainView">
         <div class="container">
             <div class="header">
                 <div class="header-left">
@@ -125,7 +125,7 @@
                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                         </svg>
                     </button>
-                    <button class="calendar-btn" onclick="toggleChartModal()" title="Relatório Anual">
+                    <button class="calendar-btn" onclick="toggleRelatorioMes()" title="Relatório Mês">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="20" x2="18" y2="10"></line>
                             <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -155,35 +155,6 @@
                 </div>
             </div>
 
-            <!-- Chart Modal -->
-            <div class="calendar-modal" id="chartModal">
-                <div class="calendar-content" style="max-width: 600px;">
-                    <div class="calendar-header">
-                        <h3>Relatório Anual - <span id="chartYear">2026</span></h3>
-                        <button onclick="toggleChartModal()" class="calendar-year-nav" style="background: transparent;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="chart-content">
-                        <div class="chart-item">
-                            <div class="chart-label">Total Faturado Anual</div>
-                            <div class="chart-value" id="chartFaturado">R$ 0,00</div>
-                        </div>
-                        <div class="chart-item">
-                            <div class="chart-label">Total Pago Anual</div>
-                            <div class="chart-value success" id="chartPago">R$ 0,00</div>
-                        </div>
-                        <div class="chart-item">
-                            <div class="chart-label">Aguardando Pagamento</div>
-                            <div class="chart-value warning" id="chartPendente">R$ 0,00</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Table Card -->
             <div class="card table-card">
                 <div style="overflow-x: auto;">
@@ -200,6 +171,63 @@
                             </tr>
                         </thead>
                         <tbody id="vendasContainer"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RELATÓRIO MÊS VIEW -->
+    <div class="app-content" id="relatorioView" style="display: none;">
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Relatório Mês - <span id="relatorioMesNome"></span></h1>
+                    <div id="connectionStatusRelatorio" class="connection-status offline">
+                        <span class="status-dot"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Bar Relatório -->
+            <div class="search-bar-wrapper">
+                <div class="search-bar">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchRelatorio" placeholder="Pesquisar por NF, órgão..." oninput="filterRelatorio()">
+
+                    <button class="calendar-btn" onclick="toggleRelatorioMes()" title="Voltar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 14l-5-5 5-5"></path>
+                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Card Relatório -->
+            <div class="card table-card">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nº NF</th>
+                                <th>Data Emissão</th>
+                                <th>Órgão</th>
+                                <th>Valor NF</th>
+                                <th>Data Entrega</th>
+                                <th>Data Pagamento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relatorioContainer"></tbody>
+                        <tfoot>
+                            <tr style="background: var(--bg-card); font-weight: 600;">
+                                <td colspan="3" style="text-align: right; padding: 1rem;"><strong>TOTAL:</strong></td>
+                                <td colspan="3" style="padding: 1rem;"><strong id="relatorioTotal">R$ 0,00</strong></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -226,7 +254,7 @@
         setTimeout(() => {
             const splash = document.getElementById('splashScreen');
             if (splash) splash.style.display = 'none';
-        }, 2000);
+        }, 3000);
     </script>
     <script src="script.js"></script>
 </body>
