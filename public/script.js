@@ -181,12 +181,27 @@ function toggleRelatorioMes() {
     
     const mainView = document.getElementById('mainView');
     const relatorioView = document.getElementById('relatorioView');
+    const splashRelatorio = document.getElementById('splashScreenRelatorio');
     
     if (relatorioMode) {
+        // Entrando no Relatório Mês
         mainView.style.display = 'none';
         relatorioView.style.display = 'block';
-        updateRelatorioMes();
+        
+        // Mostrar splash screen
+        if (splashRelatorio) {
+            splashRelatorio.style.display = 'flex';
+            
+            // Esconder splash após 3 segundos e mostrar conteúdo
+            setTimeout(() => {
+                splashRelatorio.style.display = 'none';
+                updateRelatorioMes();
+            }, 3000);
+        } else {
+            updateRelatorioMes();
+        }
     } else {
+        // Voltando para interface principal
         mainView.style.display = 'block';
         relatorioView.style.display = 'none';
         updateDisplay();
