@@ -163,6 +163,12 @@ window.filterVendas = function() {
             matchStatus = v.is_pago === true;
         } else if (filterStatus === 'ENTREGUE') {
             matchStatus = v.is_pago === false && v.status_frete === 'ENTREGUE';
+        } else if (filterStatus === 'EM TRÂNSITO') {
+            matchStatus = v.is_pago === false && v.status_frete === 'EM TRÂNSITO';
+        } else if (filterStatus === 'SIMPLES REMESSA') {
+            matchStatus = v.is_pago === false && v.status_frete === 'SIMPLES REMESSA';
+        } else if (filterStatus === 'REMESSA DE AMOSTRA') {
+            matchStatus = v.is_pago === false && v.status_frete === 'REMESSA DE AMOSTRA';
         }
         
         return matchSearch && matchStatus;
@@ -191,12 +197,24 @@ function renderTable(vendasExibir) {
         // Classe para linhas pagas (verde)
         const rowClass = v.is_pago ? 'row-pago' : '';
         
-        // Status
+        // Status - mostrar status correto baseado na origem
         let statusBadge = '';
         if (v.is_pago) {
+            // Vem do Contas a Receber - PAGO
             statusBadge = '<span class="badge entregue">PAGO</span>';
-        } else if (v.status_frete === 'ENTREGUE') {
-            statusBadge = '<span class="badge transito">ENTREGUE</span>';
+        } else if (v.origem === 'CONTROLE_FRETE') {
+            // Vem do Controle de Frete - mostrar status do frete
+            if (v.status_frete === 'ENTREGUE') {
+                statusBadge = '<span class="badge entregue">ENTREGUE</span>';
+            } else if (v.status_frete === 'EM TRÂNSITO') {
+                statusBadge = '<span class="badge transito">EM TRÂNSITO</span>';
+            } else if (v.status_frete === 'SIMPLES REMESSA') {
+                statusBadge = '<span class="badge info">SIMPLES REMESSA</span>';
+            } else if (v.status_frete === 'REMESSA DE AMOSTRA') {
+                statusBadge = '<span class="badge warning">REMESSA DE AMOSTRA</span>';
+            } else {
+                statusBadge = `<span class="badge">${v.status_frete || '-'}</span>`;
+            }
         }
 
         return `
