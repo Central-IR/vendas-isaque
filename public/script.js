@@ -337,31 +337,42 @@ function updateDisplay() {
 }
 
 function updateDashboard() {
-    // CONTABILIZAR TODOS OS REGISTROS (não apenas do mês)
+    // NOVOS DASHBOARDS: PAGO | A RECEBER | ENTREGUE | FATURADO
     let totalPago = 0;
     let totalAReceber = 0;
-    let totalEntregue = 0;
+    let quantidadeEntregue = 0;
     let totalFaturado = 0;
     
     vendas.forEach(venda => {
         const valor = parseFloat(venda.valor_nf || 0);
+        
+        // FATURADO: Soma TUDO (pagos + não pagos)
         totalFaturado += valor;
         
-        if (venda.status_pagamento === 'PAGO' && venda.data_pagamento) {
+        // PAGO: Apenas registros com origem CONTAS_RECEBER e is_pago = true
+        if (venda.is_pago === true || (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento)) {
             totalPago += valor;
-        } else if (venda.status_frete === 'ENTREGUE') {
+        }
+        // A RECEBER: Apenas registros de CONTROLE_FRETE (entregues mas não pagos)
+        else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
             totalAReceber += valor;
         }
         
-        if (venda.status_frete === 'ENTREGUE' || venda.previsao_entrega) {
-            totalEntregue++;
+        // ENTREGUE: Quantidade de NFs que vieram do Controle de Frete marcadas como entregue
+        if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
+            quantidadeEntregue++;
+        }
+        // OU notas pagas (que também são consideradas entregues)
+        else if (venda.is_pago === true || venda.origem === 'CONTAS_RECEBER') {
+            quantidadeEntregue++;
         }
     });
     
     document.getElementById('totalPago').textContent = formatCurrency(totalPago);
     document.getElementById('totalAReceber').textContent = formatCurrency(totalAReceber);
-    document.getElementById('totalEntregue').textContent = totalEntregue;
+    document.getElementById('totalEntregue').textContent = quantidadeEntregue;
     document.getElementById('totalFaturado').textContent = formatCurrency(totalFaturado);
+}
 }
 
 function updateTable() {
@@ -379,9 +390,9 @@ function updateTable() {
     }
     
     if (filterStatus === 'PAGO') {
-        filteredVendas = filteredVendas.filter(v => v.status_pagamento === 'PAGO');
+        filteredVendas = filteredVendas.filter(v => v.is_pago === true || v.origem === 'CONTAS_RECEBER');
     } else if (filterStatus === 'ENTREGUE') {
-        filteredVendas = filteredVendas.filter(v => v.status_frete === 'ENTREGUE');
+        filteredVendas = filteredVendas.filter(v => v.origem === 'CONTROLE_FRETE' && v.status_frete === 'ENTREGUE');
     }
     
     if (filteredVendas.length === 0) {
@@ -395,22 +406,23 @@ function updateTable() {
         return;
     }
     
-    filteredVendas.sort((a, b) => new Date(b.data_emissao) - new Date(a.data_emissao));
+    // ORDENAR CRESCENTE por data de emissão
+    filteredVendas.sort((a, b) => new Date(a.data_emissao) - new Date(b.data_emissao));
     
     container.innerHTML = filteredVendas.map(venda => {
-        let status = 'PENDENTE';
+        let status = 'ENTREGUE';
         let statusClass = 'reprovada';
+        let rowClass = '';
         
-        if (venda.status_pagamento === 'PAGO') {
+        // Verificar se é PAGO (destaque verde)
+        if (venda.is_pago === true || venda.origem === 'CONTAS_RECEBER') {
             status = 'PAGO';
             statusClass = 'aprovada';
-        } else if (venda.status_frete === 'ENTREGUE') {
-            status = 'ENTREGUE';
-            statusClass = 'reprovada';
+            rowClass = 'row-pago';  // Classe para destacar linha inteira em verde
         }
         
         return `
-        <tr>
+        <tr class="${rowClass}">
             <td><strong>${venda.numero_nf || '-'}</strong></td>
             <td>${formatDate(venda.data_emissao)}</td>
             <td>${venda.nome_orgao || '-'}</td>
