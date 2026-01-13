@@ -9,29 +9,11 @@ const PORT = process.env.PORT || 10000;
 // Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_KEY
 );
 
 // Middleware
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Token'],
-  credentials: false
-}));
-
-// Headers adicionais de CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Token');
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
+app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
@@ -40,40 +22,39 @@ async function syncVendasIsaque() {
   try {
     console.log('🔄 Sincronizando dados do Isaque...');
 
-    // 1. Buscar TODOS os registros do Controle de Frete (Isaque)
+    // 1. Buscar todos os registros do Controle de Frete (Isaque)
     const { data: freteData, error: freteError } = await supabase
       .from('controle_frete')
       .select('*')
       .eq('vendedor', 'ISAQUE')
-      .order('data_emissao', { ascending: true });
+      .order('numero_nf', { ascending: true });
 
     if (freteError) throw freteError;
 
-    // 2. Buscar APENAS registros PAGOS do Contas a Receber (Isaque)
+    // 2. Buscar todos os registros do Contas a Receber (Isaque)
     const { data: contasData, error: contasError } = await supabase
       .from('contas_receber')
       .select('*')
       .eq('vendedor', 'ISAQUE')
-      .eq('status', 'PAGO')
-      .order('data_emissao', { ascending: true });
+      .order('numero_nf', { ascending: true });
 
     if (contasError) throw contasError;
 
-    // 3. Criar mapa de NFs pagas (PRIORIDADE MÁXIMA)
+    // 3. Criar mapa de NFs pagas
     const nfsPagas = new Map();
     if (contasData) {
       contasData.forEach(conta => {
-        if (conta.data_pagamento) {
+        if (conta.status === 'PAGO' && conta.data_pagamento) {
           nfsPagas.set(conta.numero_nf, conta);
         }
       });
     }
 
-    // 4. Processar registros com PRIORIZAÇÃO
+    // 4. Processar registros
     const registrosParaInserir = [];
     const nfsProcessadas = new Set();
 
-    // PRIORIDADE 1: Contas PAGAS (substituem fretes entregues)
+    // Prioridade 2: Contas pagas
     nfsPagas.forEach((conta, numero_nf) => {
       registrosParaInserir.push({
         numero_nf: numero_nf,
@@ -89,13 +70,12 @@ async function syncVendasIsaque() {
         status_pagamento: conta.status,
         observacoes: conta.observacoes,
         id_contas_receber: conta.id,
-        prioridade: 1,
-        is_pago: true  // Flag para destacar em verde
+        prioridade: 2
       });
       nfsProcessadas.add(numero_nf);
     });
 
-    // PRIORIDADE 2: TODOS os Fretes (apenas se NÃO estiver pago)
+    // Prioridade 1: Todos os fretes (não apenas entregues)
     if (freteData) {
       freteData.forEach(frete => {
         if (!nfsProcessadas.has(frete.numero_nf)) {
@@ -116,10 +96,8 @@ async function syncVendasIsaque() {
             previsao_entrega: frete.previsao_entrega,
             status_frete: frete.status,
             id_controle_frete: frete.id,
-            prioridade: 2,
-            is_pago: false  // Não está pago
+            prioridade: 1
           });
-          nfsProcessadas.add(frete.numero_nf);
         }
       });
     }
@@ -128,16 +106,9 @@ async function syncVendasIsaque() {
     const { error: deleteError } = await supabase
       .from('vendas_isaque')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000');
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
 
     if (deleteError) console.error('Erro ao limpar tabela:', deleteError);
-
-    // Ordenar por data_emissao CRESCENTE
-    registrosParaInserir.sort((a, b) => {
-      const dateA = new Date(a.data_emissao);
-      const dateB = new Date(b.data_emissao);
-      return dateA - dateB;
-    });
 
     if (registrosParaInserir.length > 0) {
       const { error: insertError } = await supabase
@@ -148,9 +119,6 @@ async function syncVendasIsaque() {
     }
 
     console.log(`✅ Sincronização concluída: ${registrosParaInserir.length} registros`);
-    console.log(`   - ${nfsPagas.size} pagas (CONTAS_RECEBER)`);
-    console.log(`   - ${registrosParaInserir.length - nfsPagas.size} entregues (CONTROLE_FRETE)`);
-    
     return { success: true, count: registrosParaInserir.length };
 
   } catch (error) {
@@ -158,6 +126,8 @@ async function syncVendasIsaque() {
     throw error;
   }
 }
+
+// API Endpoints
 
 // GET /api/sync - Sincronizar dados
 app.get('/api/sync', async (req, res) => {
