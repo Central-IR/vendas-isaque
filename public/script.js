@@ -219,82 +219,99 @@ function toggleRelatorioMes() {
     const modal = document.getElementById('relatorioModal');
     if (!modal) return;
     
+    if (modal.classList.contains('show')) {
+        modal.classList.remove('show');
+    } else {
+        gerarRelatorioMes();
+        modal.classList.add('show');
+    }
+}
+
+function gerarRelatorioMes() {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const monthName = months[currentMonth.getMonth()];
     const year = currentMonth.getFullYear();
     
-    document.getElementById('relatorioModalTitulo').textContent = `Relatório - ${monthName} ${year}`;
+    const tituloElem = document.getElementById('relatorioModalTitulo');
+    if (tituloElem) {
+        tituloElem.textContent = `Relatório de Pagamentos - ${monthName} ${year}`;
+    }
     
-    let vendasPagas = vendas.filter(v => {
-        if (!v.data_pagamento || v.status_pagamento !== 'PAGO') return false;
+    const vendasPagas = vendas.filter(v => {
+        if (v.origem !== 'CONTAS_RECEBER' || !v.data_pagamento) return false;
         
-        const dataPag = new Date(v.data_pagamento);
-        return dataPag.getMonth() === currentMonth.getMonth() &&
-               dataPag.getFullYear() === currentMonth.getFullYear();
+        const dataPagamento = new Date(v.data_pagamento + 'T00:00:00');
+        return dataPagamento.getMonth() === currentMonth.getMonth() && 
+               dataPagamento.getFullYear() === currentMonth.getFullYear();
     });
     
     const modalBody = document.getElementById('relatorioModalBody');
+    if (!modalBody) return;
     
     if (vendasPagas.length === 0) {
         modalBody.innerHTML = `
-            <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3; margin-bottom: 1rem;">
+            <div style="text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 1rem; opacity: 0.5;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
-                <p style="font-size: 1.1rem; font-weight: 600; margin: 0;">Nenhum Pagamento Encontrado</p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Não há pagamentos registrados para ${monthName} ${year}</p>
+                <p style="font-size: 1.1rem; font-weight: 600;">Nenhum pagamento registrado neste mês</p>
             </div>
         `;
-    } else {
-        vendasPagas.sort((a, b) => new Date(a.data_pagamento) - new Date(b.data_pagamento));
-        
-        const rows = vendasPagas.map(venda => `
-            <tr>
-                <td><strong>${venda.numero_nf || '-'}</strong></td>
-                <td>${formatDate(venda.data_emissao)}</td>
-                <td>${venda.nome_orgao || '-'}</td>
-                <td><strong>R$ ${parseFloat(venda.valor_nf || 0).toFixed(2).replace('.', ',')}</strong></td>
-                <td>${formatDate(venda.data_pagamento)}</td>
-            </tr>
-        `).join('');
-        
-        const totalPago = vendasPagas.reduce((sum, v) => sum + parseFloat(v.valor_nf || 0), 0);
-        
-        modalBody.innerHTML = `
-            <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-secondary);">Total de Pagamentos:</span>
-                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${vendasPagas.length}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                    <span style="color: var(--text-secondary);">Valor Total Pago:</span>
-                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--success);">R$ ${totalPago.toFixed(2).replace('.', ',')}</span>
-                </div>
-            </div>
-            
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>NF</th>
-                            <th>Emissão</th>
-                            <th>Órgão</th>
-                            <th>Valor</th>
-                            <th>Data Pagamento</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
-            </div>
-        `;
+        return;
     }
     
-    modal.classList.add('show');
+    const totalPago = vendasPagas.reduce((sum, v) => sum + (parseFloat(v.valor_nf) || 0), 0);
+    
+    modalBody.innerHTML = `
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600; color: var(--text-primary);">Total de Pagamentos:</span>
+                <span style="font-size: 1.5rem; font-weight: 700; color: #22C55E;">${formatCurrency(totalPago)}</span>
+            </div>
+            <div style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                ${vendasPagas.length} pagamento${vendasPagas.length !== 1 ? 's' : ''} registrado${vendasPagas.length !== 1 ? 's' : ''}
+            </div>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--th-bg); color: var(--th-color);">
+                        <th style="padding: 12px; text-align: left; border: 1px solid var(--th-border); font-weight: 600;">Nº NF</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid var(--th-border); font-weight: 600;">Órgão</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid var(--th-border); font-weight: 600;">Data Emissão</th>
+                        <th style="padding: 12px; text-align: left; border: 1px solid var(--th-border); font-weight: 600;">Data Pagamento</th>
+                        <th style="padding: 12px; text-align: right; border: 1px solid var(--th-border); font-weight: 600;">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${vendasPagas.map((venda, index) => `
+                        <tr style="background: ${index % 2 === 0 ? 'var(--bg-card)' : 'var(--table-stripe)'};">
+                            <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_pagamento)}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr style="background: rgba(34, 197, 94, 0.1); border-top: 3px solid #22C55E;">
+                        <td colspan="4" style="padding: 14px 12px; border: 1px solid var(--border-color); font-weight: 700; font-size: 1rem; color: var(--text-primary);">TOTAL GERAL</td>
+                        <td style="padding: 14px 12px; border: 1px solid var(--border-color); text-align: right; font-weight: 700; font-size: 1.1rem; color: #22C55E;">${formatCurrency(totalPago)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
+}
+
+function closeRelatorioModal() {
+    const modal = document.getElementById('relatorioModal');
+    if (modal) modal.classList.remove('show');
 }
 
 function closeRelatorioModal() {
@@ -379,21 +396,25 @@ function updateTable() {
     
     container.innerHTML = filteredVendas.map(venda => {
         let status = 'ENTREGUE';
-        let statusClass = 'reprovada';
+        let statusClass = 'entregue';
         let rowClass = '';
         
         if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
             status = 'PAGO';
-            statusClass = 'aprovada';
+            statusClass = 'pago';
             rowClass = 'row-pago';
+        } else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
+            status = 'ENTREGUE';
+            statusClass = 'entregue';
+            rowClass = 'row-entregue';
         }
         
         return `
         <tr class="${rowClass}">
             <td><strong>${venda.numero_nf || '-'}</strong></td>
-            <td>${formatDate(venda.data_emissao)}</td>
+            <td style="white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
             <td>${venda.nome_orgao || '-'}</td>
-            <td><strong>R$ ${parseFloat(venda.valor_nf || 0).toFixed(2).replace('.', ',')}</strong></td>
+            <td><strong>${formatCurrency(venda.valor_nf)}</strong></td>
             <td>${venda.tipo_nf || '-'}</td>
             <td>
                 <span class="badge ${statusClass}">${status}</span>
@@ -452,7 +473,14 @@ function formatDate(dateString) {
 }
 
 function formatCurrency(value) {
-    return `R$ ${parseFloat(value).toFixed(2).replace('.', ',')}`;
+    if (!value) return 'R$ 0,00';
+    const num = parseFloat(value);
+    return num.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
 function showToast(message, type = 'success') {
@@ -518,3 +546,16 @@ function selectMonth(monthIndex) {
     toggleCalendar();
     updateDisplay();
 }
+
+// Event listener para fechar modais clicando fora
+document.addEventListener('click', (e) => {
+    const calendarModal = document.getElementById('calendarModal');
+    const relatorioModal = document.getElementById('relatorioModal');
+    
+    if (calendarModal && e.target === calendarModal) {
+        calendarModal.classList.remove('show');
+    }
+    if (relatorioModal && e.target === relatorioModal) {
+        relatorioModal.classList.remove('show');
+    }
+});
