@@ -86,7 +86,7 @@ async function syncVendasIsaque() {
             data_coleta: frete.data_coleta,
             cidade_destino: frete.cidade_destino,
             previsao_entrega: frete.previsao_entrega,
-            status_frete: frete.status,
+            status_frete: frete.status,  // STATUS REAL DO FRETE
             id_controle_frete: frete.id,
             prioridade: 1
           });
