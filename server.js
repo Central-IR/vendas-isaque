@@ -40,46 +40,38 @@ async function syncVendasIsaque() {
 
     if (contasError) throw contasError;
 
-    // 3. Criar mapa de NFs pagas
-    const nfsPagas = new Map();
+    // 3. Criar mapa consolidado de todas as NFs (evita duplicatas)
+    const nfsMap = new Map();
+
+    // Primeiro, adicionar contas pagas (prioridade 2)
     if (contasData) {
       contasData.forEach(conta => {
         if (conta.status === 'PAGO' && conta.data_pagamento) {
-          nfsPagas.set(conta.numero_nf, conta);
+          nfsMap.set(conta.numero_nf, {
+            numero_nf: conta.numero_nf,
+            origem: 'CONTAS_RECEBER',
+            data_emissao: conta.data_emissao,
+            valor_nf: conta.valor,
+            tipo_nf: conta.tipo_nf,
+            nome_orgao: conta.orgao,
+            vendedor: 'ISAQUE',
+            banco: conta.banco,
+            data_vencimento: conta.data_vencimento,
+            data_pagamento: conta.data_pagamento,
+            status_pagamento: conta.status,
+            observacoes: conta.observacoes,
+            id_contas_receber: conta.id,
+            prioridade: 2
+          });
         }
       });
     }
 
-    // 4. Processar registros
-    const registrosParaInserir = [];
-    const nfsProcessadas = new Set();
-
-    // Prioridade 2: Contas pagas
-    nfsPagas.forEach((conta, numero_nf) => {
-      registrosParaInserir.push({
-        numero_nf: numero_nf,
-        origem: 'CONTAS_RECEBER',
-        data_emissao: conta.data_emissao,
-        valor_nf: conta.valor,
-        tipo_nf: conta.tipo_nf,
-        nome_orgao: conta.orgao,
-        vendedor: 'ISAQUE',
-        banco: conta.banco,
-        data_vencimento: conta.data_vencimento,
-        data_pagamento: conta.data_pagamento,
-        status_pagamento: conta.status,
-        observacoes: conta.observacoes,
-        id_contas_receber: conta.id,
-        prioridade: 2
-      });
-      nfsProcessadas.add(numero_nf);
-    });
-
-    // Prioridade 1: Todos os fretes (não apenas entregues)
+    // Depois, adicionar fretes que não estão no mapa (prioridade 1)
     if (freteData) {
       freteData.forEach(frete => {
-        if (!nfsProcessadas.has(frete.numero_nf)) {
-          registrosParaInserir.push({
+        if (!nfsMap.has(frete.numero_nf)) {
+          nfsMap.set(frete.numero_nf, {
             numero_nf: frete.numero_nf,
             origem: 'CONTROLE_FRETE',
             data_emissao: frete.data_emissao,
@@ -102,28 +94,37 @@ async function syncVendasIsaque() {
       });
     }
 
-    // 5. Limpar tabela vendas_isaque e inserir novos dados
+    // Converter mapa para array
+    const registrosParaInserir = Array.from(nfsMap.values());
+
+    // 4. Limpar tabela vendas_isaque
     const { error: deleteError } = await supabase
       .from('vendas_isaque')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
-    if (deleteError) console.error('Erro ao limpar tabela:', deleteError);
+    if (deleteError) {
+      console.error('⚠️ Erro ao limpar tabela:', deleteError);
+    }
 
+    // 5. Inserir novos dados
     if (registrosParaInserir.length > 0) {
       const { error: insertError } = await supabase
         .from('vendas_isaque')
         .insert(registrosParaInserir);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('❌ Erro ao inserir:', insertError);
+        throw insertError;
+      }
     }
 
-    console.log(`✅ Sincronização concluída: ${registrosParaInserir.length} registros`);
+    console.log(`✅ Sincronização concluída: ${registrosParaInserir.length} registros únicos`);
     return { success: true, count: registrosParaInserir.length };
 
   } catch (error) {
     console.error('❌ Erro na sincronização:', error);
-    throw error;
+    return { success: false, error: error.message };
   }
 }
 
@@ -142,9 +143,6 @@ app.get('/api/sync', async (req, res) => {
 // GET /api/vendas - Listar todas as vendas do Isaque
 app.get('/api/vendas', async (req, res) => {
   try {
-    // Sincronizar antes de buscar
-    await syncVendasIsaque();
-
     const { data, error } = await supabase
       .from('vendas_isaque')
       .select('*')
@@ -162,8 +160,6 @@ app.get('/api/vendas', async (req, res) => {
 // GET /api/dashboard - Dashboard com estatísticas
 app.get('/api/dashboard', async (req, res) => {
   try {
-    await syncVendasIsaque();
-
     const { data, error } = await supabase
       .from('vendas_isaque')
       .select('*');
@@ -210,6 +206,7 @@ app.get('/health', (req, res) => {
 // Sincronização automática a cada 5 minutos
 setInterval(async () => {
   try {
+    console.log('⏰ Sincronização automática iniciada...');
     await syncVendasIsaque();
   } catch (error) {
     console.error('Erro na sincronização automática:', error);
@@ -217,7 +214,14 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 // Sincronização inicial
-syncVendasIsaque().catch(console.error);
+console.log('🚀 Iniciando sincronização inicial...');
+syncVendasIsaque()
+  .then(result => {
+    console.log('✅ Sincronização inicial concluída:', result);
+  })
+  .catch(error => {
+    console.error('❌ Erro na sincronização inicial:', error);
+  });
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
