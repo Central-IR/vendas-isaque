@@ -1,7 +1,7 @@
 {
-  "name": "vendas-isaque",
+  "name": "vendas",
   "version": "1.0.0",
-  "description": "Sistema de monitoramento de vendas do Isaque - Integração Controle de Frete e Contas a Receber",
+  "description": "Sistema de monitoramento de vendas consolidado - Todos os Vendedores (ROBERTO, ISAQUE, MIGUEL)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,6 +9,9 @@
   },
   "keywords": [
     "vendas",
+    "consolidado",
+    "roberto",
+    "isaque",
     "miguel",
     "controle-frete",
     "contas-receber"
