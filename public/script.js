@@ -114,8 +114,6 @@ function startPolling() {
 }
 
 async function loadVendas() {
-    if (!isOnline && !DEVELOPMENT_MODE) return;
-
     try {
         const headers = { 'Accept': 'application/json' };
         if (!DEVELOPMENT_MODE && sessionToken) {
@@ -135,20 +133,35 @@ async function loadVendas() {
         }
 
         if (!response.ok) {
-            console.error('❌ Erro ao carregar vendas:', response.status);
+            console.error('❌ Erro ao carregar vendas:', response.status, response.statusText);
+            isOnline = false;
+            updateConnectionStatus();
             return;
         }
 
         const data = await response.json();
+        
+        // Validar se data é um array
+        if (!Array.isArray(data)) {
+            console.error('❌ Resposta inválida da API:', data);
+            return;
+        }
+        
         vendas = data;
+        isOnline = true;
+        updateConnectionStatus();
         
         const newHash = JSON.stringify(vendas.map(v => v.id));
         if (newHash !== lastDataHash) {
             lastDataHash = newHash;
             updateDisplay();
         }
+        
+        console.log(`[${new Date().toLocaleTimeString()}] 33 fretes carregados`);
     } catch (error) {
-        console.error('❌ Erro ao carregar:', error);
+        console.error('❌ Erro ao carregar vendas:', error);
+        isOnline = false;
+        updateConnectionStatus();
     }
 }
 
@@ -158,9 +171,35 @@ async function syncData() {
         return;
     }
 
-    showToast('Sincronizando dados...', 'info');
-    await loadVendas();
-    showToast('Dados sincronizados com sucesso!', 'success');
+    try {
+        showToast('Sincronizando dados...', 'info');
+        
+        const headers = { 'Accept': 'application/json' };
+        if (!DEVELOPMENT_MODE && sessionToken) {
+            headers['X-Session-Token'] = sessionToken;
+        }
+
+        // Chamar endpoint de sync
+        const response = await fetch(`${API_URL}/sync`, {
+            method: 'GET',
+            headers: headers,
+            mode: 'cors'
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao sincronizar');
+        }
+
+        const result = await response.json();
+        console.log('✅ Sincronização:', result);
+        
+        // Recarregar vendas
+        await loadVendas();
+        showToast('Dados sincronizados com sucesso!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao sincronizar:', error);
+        showToast('Erro ao sincronizar dados', 'error');
+    }
 }
 
 function changeMonth(direction) {
@@ -177,7 +216,6 @@ function updateMonthDisplay() {
 }
 
 function toggleRelatorioMes() {
-    // Abrir modal com relatório do mês
     const modal = document.getElementById('relatorioModal');
     if (!modal) return;
     
@@ -188,7 +226,6 @@ function toggleRelatorioMes() {
     
     document.getElementById('relatorioModalTitulo').textContent = `Relatório - ${monthName} ${year}`;
     
-    // Filtrar apenas vendas PAGAS do mês atual
     let vendasPagas = vendas.filter(v => {
         if (!v.data_pagamento || v.status_pagamento !== 'PAGO') return false;
         
@@ -212,7 +249,6 @@ function toggleRelatorioMes() {
             </div>
         `;
     } else {
-        // Ordenar por data de pagamento crescente
         vendasPagas.sort((a, b) => new Date(a.data_pagamento) - new Date(b.data_pagamento));
         
         const rows = vendasPagas.map(venda => `
@@ -220,19 +256,34 @@ function toggleRelatorioMes() {
                 <td><strong>${venda.numero_nf || '-'}</strong></td>
                 <td>${formatDate(venda.data_emissao)}</td>
                 <td>${venda.nome_orgao || '-'}</td>
+                <td><strong>R$ ${parseFloat(venda.valor_nf || 0).toFixed(2).replace('.', ',')}</strong></td>
                 <td>${formatDate(venda.data_pagamento)}</td>
             </tr>
         `).join('');
         
+        const totalPago = vendasPagas.reduce((sum, v) => sum + parseFloat(v.valor_nf || 0), 0);
+        
         modalBody.innerHTML = `
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary);">Total de Pagamentos:</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${vendasPagas.length}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                    <span style="color: var(--text-secondary);">Valor Total Pago:</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--success);">R$ ${totalPago.toFixed(2).replace('.', ',')}</span>
+                </div>
+            </div>
+            
             <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
+                <table>
                     <thead>
-                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
-                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Nº NF</th>
-                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Data Emissão</th>
-                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Órgão</th>
-                            <th style="padding: 12px; text-align: left; font-size: 0.85rem; text-transform: uppercase;">Data Pagamento</th>
+                        <tr>
+                            <th>NF</th>
+                            <th>Emissão</th>
+                            <th>Órgão</th>
+                            <th>Valor</th>
+                            <th>Data Pagamento</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -248,78 +299,7 @@ function toggleRelatorioMes() {
 
 function closeRelatorioModal() {
     const modal = document.getElementById('relatorioModal');
-    if (modal) {
-        modal.classList.remove('show');
-    }
-}
-
-window.closeRelatorioModal = closeRelatorioModal;
-
-function updateRelatorioMes() {
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
-                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const monthName = months[currentMonth.getMonth()];
-    const year = currentMonth.getFullYear();
-    
-    document.getElementById('relatorioMesNome').textContent = `${monthName} ${year}`;
-    
-    // Filtrar apenas vendas PAGAS do mês atual
-    let vendasPagas = vendas.filter(v => {
-        if (!v.data_pagamento || v.status_pagamento !== 'PAGO') return false;
-        
-        const dataPag = new Date(v.data_pagamento);
-        return dataPag.getMonth() === currentMonth.getMonth() &&
-               dataPag.getFullYear() === currentMonth.getFullYear();
-    });
-    
-    // Aplicar filtro de pesquisa
-    const search = document.getElementById('searchRelatorio').value.toLowerCase();
-    if (search) {
-        vendasPagas = vendasPagas.filter(v => 
-            (v.numero_nf || '').toLowerCase().includes(search) ||
-            (v.nome_orgao || '').toLowerCase().includes(search)
-        );
-    }
-    
-    // Ordenar por data de pagamento (crescente)
-    vendasPagas.sort((a, b) => new Date(a.data_pagamento) - new Date(b.data_pagamento));
-    
-    const container = document.getElementById('relatorioContainer');
-    
-    if (vendasPagas.length === 0) {
-        container.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem;">
-                    Nenhuma venda paga encontrada neste mês
-                </td>
-            </tr>
-        `;
-        document.getElementById('relatorioTotal').textContent = 'R$ 0,00';
-        return;
-    }
-    
-    let totalMes = 0;
-    container.innerHTML = vendasPagas.map(venda => {
-        const valor = parseFloat(venda.valor_nf || 0);
-        totalMes += valor;
-        
-        return `
-            <tr>
-                <td>${venda.numero_nf || '-'}</td>
-                <td>${formatDate(venda.data_emissao)}</td>
-                <td>${venda.nome_orgao || '-'}</td>
-                <td><strong>R$ ${valor.toFixed(2).replace('.', ',')}</strong></td>
-                <td>${formatDate(venda.previsao_entrega)}</td>
-                <td>${formatDate(venda.data_pagamento)}</td>
-            </tr>
-        `;
-    }).join('');
-    
-    document.getElementById('relatorioTotal').textContent = `R$ ${totalMes.toFixed(2).replace('.', ',')}`;
-}
-
-function filterRelatorio() {
-    updateRelatorioMes();
+    if (modal) modal.classList.remove('show');
 }
 
 function filterVendas() {
@@ -327,17 +307,12 @@ function filterVendas() {
 }
 
 function updateDisplay() {
-    if (relatorioMode) {
-        updateRelatorioMes();
-    } else {
-        updateMonthDisplay();
-        updateDashboard();
-        updateTable();
-    }
+    updateMonthDisplay();
+    updateDashboard();
+    updateTable();
 }
 
 function updateDashboard() {
-    // NOVOS DASHBOARDS: PAGO | A RECEBER | ENTREGUE | FATURADO
     let totalPago = 0;
     let totalAReceber = 0;
     let quantidadeEntregue = 0;
@@ -346,24 +321,17 @@ function updateDashboard() {
     vendas.forEach(venda => {
         const valor = parseFloat(venda.valor_nf || 0);
         
-        // FATURADO: Soma TUDO (pagos + não pagos)
+        // FATURADO: Soma TUDO
         totalFaturado += valor;
         
-        // PAGO: Apenas registros com origem CONTAS_RECEBER e is_pago = true
-        if (venda.is_pago === true || (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento)) {
+        // PAGO: origem CONTAS_RECEBER com data_pagamento
+        if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
             totalPago += valor;
-        }
-        // A RECEBER: Apenas registros de CONTROLE_FRETE (entregues mas não pagos)
-        else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
-            totalAReceber += valor;
-        }
-        
-        // ENTREGUE: Quantidade de NFs que vieram do Controle de Frete marcadas como entregue
-        if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
             quantidadeEntregue++;
         }
-        // OU notas pagas (que também são consideradas entregues)
-        else if (venda.is_pago === true || venda.origem === 'CONTAS_RECEBER') {
+        // A RECEBER: origem CONTROLE_FRETE com status ENTREGUE
+        else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
+            totalAReceber += valor;
             quantidadeEntregue++;
         }
     });
@@ -373,14 +341,15 @@ function updateDashboard() {
     document.getElementById('totalEntregue').textContent = quantidadeEntregue;
     document.getElementById('totalFaturado').textContent = formatCurrency(totalFaturado);
 }
-}
 
 function updateTable() {
     const container = document.getElementById('vendasContainer');
+    if (!container) return;
+    
     let filteredVendas = getVendasForCurrentMonth();
     
-    const search = document.getElementById('search').value.toLowerCase();
-    const filterStatus = document.getElementById('filterStatus').value;
+    const search = document.getElementById('search')?.value.toLowerCase() || '';
+    const filterStatus = document.getElementById('filterStatus')?.value || '';
     
     if (search) {
         filteredVendas = filteredVendas.filter(v => 
@@ -390,7 +359,7 @@ function updateTable() {
     }
     
     if (filterStatus === 'PAGO') {
-        filteredVendas = filteredVendas.filter(v => v.is_pago === true || v.origem === 'CONTAS_RECEBER');
+        filteredVendas = filteredVendas.filter(v => v.origem === 'CONTAS_RECEBER' && v.data_pagamento);
     } else if (filterStatus === 'ENTREGUE') {
         filteredVendas = filteredVendas.filter(v => v.origem === 'CONTROLE_FRETE' && v.status_frete === 'ENTREGUE');
     }
@@ -406,7 +375,6 @@ function updateTable() {
         return;
     }
     
-    // ORDENAR CRESCENTE por data de emissão
     filteredVendas.sort((a, b) => new Date(a.data_emissao) - new Date(b.data_emissao));
     
     container.innerHTML = filteredVendas.map(venda => {
@@ -414,11 +382,10 @@ function updateTable() {
         let statusClass = 'reprovada';
         let rowClass = '';
         
-        // Verificar se é PAGO (destaque verde)
-        if (venda.is_pago === true || venda.origem === 'CONTAS_RECEBER') {
+        if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
             status = 'PAGO';
             statusClass = 'aprovada';
-            rowClass = 'row-pago';  // Classe para destacar linha inteira em verde
+            rowClass = 'row-pago';
         }
         
         return `
