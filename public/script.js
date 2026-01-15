@@ -9,7 +9,7 @@ let allVendas = [];
 let sessionToken = null;
 let calendarYear = new Date().getFullYear();
 
-console.log('🚀 Vendas Isaque iniciada');
+console.log('🚀 Vendas Consolidada iniciada');
 console.log('📍 API URL:', API_URL);
 
 // Inicialização
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionToken = 'dev-mode';
     } else {
         const urlParams = new URLSearchParams(window.location.search);
-        sessionToken = urlParams.get('sessionToken') || sessionStorage.getItem('vendasIsaqueSession');
+        sessionToken = urlParams.get('sessionToken') || sessionStorage.getItem('vendasSession');
         
         if (!sessionToken) {
             mostrarMensagemNaoAutorizado();
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (urlParams.get('sessionToken')) {
-            sessionStorage.setItem('vendasIsaqueSession', sessionToken);
+            sessionStorage.setItem('vendasSession', sessionToken);
         }
     }
     
@@ -117,8 +117,17 @@ function selectMonth(monthIndex) {
     toggleCalendar();
 }
 
-// NOVA FUNÇÃO: Toggle do Modal de Relatório Mensal
+// FUNÇÃO: Toggle do Modal de Relatório Mensal com Validação de Vendedor
 function toggleRelatorioMes() {
+    const filterVendedor = document.getElementById('filterVendedor');
+    const vendedorSelecionado = filterVendedor ? filterVendedor.value : '';
+    
+    // Verificar se um vendedor específico está selecionado
+    if (!vendedorSelecionado) {
+        showToast('Selecione um Vendedor', 'error');
+        return;
+    }
+    
     const modal = document.getElementById('relatorioModal');
     if (!modal) return;
     
@@ -130,20 +139,24 @@ function toggleRelatorioMes() {
     }
 }
 
-// NOVA FUNÇÃO: Gerar Relatório do Mês
+// FUNÇÃO: Gerar Relatório do Mês para o Vendedor Selecionado
 function gerarRelatorioMes() {
     const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     
+    const filterVendedor = document.getElementById('filterVendedor');
+    const vendedorSelecionado = filterVendedor ? filterVendedor.value : '';
+    
     // Atualizar título do modal
     const tituloElem = document.getElementById('relatorioModalTitulo');
     if (tituloElem) {
-        tituloElem.textContent = `Relatório de Pagamentos - ${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+        tituloElem.textContent = `Relatório de Pagamentos - ${vendedorSelecionado} - ${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
     }
     
-    // Filtrar apenas vendas pagas do mês atual
+    // Filtrar apenas vendas pagas do mês atual e do vendedor selecionado
     const vendasPagas = allVendas.filter(v => {
         if (v.origem !== 'CONTAS_RECEBER' || !v.data_pagamento) return false;
+        if (v.vendedor !== vendedorSelecionado) return false;
         
         const dataPagamento = new Date(v.data_pagamento + 'T00:00:00');
         return dataPagamento.getMonth() === currentMonth.getMonth() && 
@@ -161,7 +174,7 @@ function gerarRelatorioMes() {
                     <line x1="12" y1="8" x2="12" y2="12"></line>
                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
-                <p style="font-size: 1.1rem; font-weight: 600;">Nenhum pagamento registrado neste mês</p>
+                <p style="font-size: 1.1rem; font-weight: 600;">Nenhum pagamento registrado neste mês para ${vendedorSelecionado}</p>
             </div>
         `;
         return;
@@ -204,18 +217,12 @@ function gerarRelatorioMes() {
                         </tr>
                     `).join('')}
                 </tbody>
-                <tfoot>
-                    <tr style="background: rgba(34, 197, 94, 0.1); border-top: 3px solid #22C55E;">
-                        <td colspan="4" style="padding: 14px 12px; border: 1px solid var(--border-color); font-weight: 700; font-size: 1rem; color: var(--text-primary);">TOTAL GERAL</td>
-                        <td style="padding: 14px 12px; border: 1px solid var(--border-color); text-align: right; font-weight: 700; font-size: 1.1rem; color: #22C55E;">${formatCurrency(totalPago)}</td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
     `;
 }
 
-// NOVA FUNÇÃO: Fechar Modal de Relatório
+// FUNÇÃO: Fechar Modal de Relatório
 function closeRelatorioModal() {
     const modal = document.getElementById('relatorioModal');
     if (modal) modal.classList.remove('show');
@@ -299,11 +306,19 @@ async function loadVendas() {
 
 async function loadDashboard() {
     try {
-        const monthVendas = allVendas.filter(v => {
+        const filterVendedor = document.getElementById('filterVendedor');
+        const vendedorSelecionado = filterVendedor ? filterVendedor.value : '';
+        
+        let monthVendas = allVendas.filter(v => {
             const dataEmissao = new Date(v.data_emissao + 'T00:00:00');
             return dataEmissao.getMonth() === currentMonth.getMonth() && 
                    dataEmissao.getFullYear() === currentMonth.getFullYear();
         });
+        
+        // Filtrar por vendedor se selecionado
+        if (vendedorSelecionado) {
+            monthVendas = monthVendas.filter(v => v.vendedor === vendedorSelecionado);
+        }
 
         const stats = {
             pago: 0,
@@ -340,6 +355,7 @@ async function loadDashboard() {
 
 function filterVendas() {
     updateTable();
+    loadDashboard();
 }
 
 function updateDisplay() {
@@ -351,13 +367,21 @@ function updateTable() {
     const container = document.getElementById('vendasContainer');
     if (!container) return;
     
-    const monthVendas = allVendas.filter(v => {
+    const filterVendedor = document.getElementById('filterVendedor');
+    const vendedorSelecionado = filterVendedor ? filterVendedor.value : '';
+    
+    let monthVendas = allVendas.filter(v => {
         const dataEmissao = new Date(v.data_emissao + 'T00:00:00');
         return dataEmissao.getMonth() === currentMonth.getMonth() && 
                dataEmissao.getFullYear() === currentMonth.getFullYear();
     });
     
     let filteredVendas = [...monthVendas];
+    
+    // Filtrar por vendedor
+    if (vendedorSelecionado) {
+        filteredVendas = filteredVendas.filter(v => v.vendedor === vendedorSelecionado);
+    }
     
     const searchElem = document.getElementById('search');
     const filterStatusElem = document.getElementById('filterStatus');
@@ -380,10 +404,17 @@ function updateTable() {
         });
     }
     
+    // ORDENAR POR NÚMERO DE NF (CRESCENTE)
+    filteredVendas.sort((a, b) => {
+        const nfA = parseInt(a.numero_nf) || 0;
+        const nfB = parseInt(b.numero_nf) || 0;
+        return nfA - nfB;
+    });
+    
     if (filteredVendas.length === 0) {
         container.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem;">
+                <td colspan="7" style="text-align: center; padding: 2rem;">
                     Nenhuma venda encontrada
                 </td>
             </tr>
@@ -416,6 +447,7 @@ function updateTable() {
             <tr class="${rowClass}">
                 <td><strong>${venda.numero_nf}</strong></td>
                 <td style="white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
+                <td><span class="badge badge-vendedor">${venda.vendedor}</span></td>
                 <td>${venda.nome_orgao}</td>
                 <td><strong>${formatCurrency(venda.valor_nf)}</strong></td>
                 <td>
@@ -436,7 +468,6 @@ function getStatus(venda) {
         return 'PAGO';
     }
     if (venda.origem === 'CONTROLE_FRETE') {
-        // Retornar o status real do frete
         return venda.status_frete || 'EM_TRANSITO';
     }
     return 'EM_TRANSITO';
@@ -457,6 +488,7 @@ function viewVenda(id) {
             <div class="info-section">
                 <h4>Informações da Conta</h4>
                 <p><strong>Número NF:</strong> ${venda.numero_nf}</p>
+                <p><strong>Vendedor:</strong> <span class="badge badge-vendedor">${venda.vendedor}</span></p>
                 <p><strong>Órgão:</strong> ${venda.nome_orgao}</p>
                 <p><strong>Valor:</strong> ${formatCurrency(venda.valor_nf)}</p>
                 <p><strong>Data Emissão:</strong> ${formatDate(venda.data_emissao)}</p>
@@ -472,6 +504,7 @@ function viewVenda(id) {
             <div class="info-section">
                 <h4>Informações do Frete</h4>
                 <p><strong>Número NF:</strong> ${venda.numero_nf}</p>
+                <p><strong>Vendedor:</strong> <span class="badge badge-vendedor">${venda.vendedor}</span></p>
                 <p><strong>Órgão:</strong> ${venda.nome_orgao}</p>
                 <p><strong>Valor NF:</strong> ${formatCurrency(venda.valor_nf)}</p>
                 <p><strong>Data Emissão:</strong> ${formatDate(venda.data_emissao)}</p>
@@ -502,7 +535,6 @@ function formatDate(dateString) {
     return date.toLocaleDateString('pt-BR');
 }
 
-// FUNÇÃO ATUALIZADA: Formatação monetária com separadores de milhares
 function formatCurrency(value) {
     if (!value) return 'R$ 0,00';
     const num = parseFloat(value);
