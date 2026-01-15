@@ -85,6 +85,17 @@
                     
                     <div class="search-bar-filters">
                         <div class="filter-dropdown-inline">
+                            <select id="filterVendedor" onchange="filterVendas()">
+                                <option value="">Todos os Vendedores</option>
+                                <option value="ROBERTO">Roberto</option>
+                                <option value="ISAQUE">Isaque</option>
+                                <option value="MIGUEL">Miguel</option>
+                            </select>
+                            <svg class="dropdown-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="filter-dropdown-inline">
                             <select id="filterStatus" onchange="filterVendas()">
                                 <option value="">Todos os Status</option>
                                 <option value="PAGO">Pago</option>
@@ -158,7 +169,7 @@
                 </div>
             </div>
 
-            <!-- Table Card (SEM COLUNA TIPO) -->
+            <!-- Table Card COM COLUNA VENDEDOR -->
             <div class="card table-card">
                 <div style="overflow-x: auto;">
                     <table>
@@ -166,6 +177,7 @@
                             <tr>
                                 <th>Nº NF</th>
                                 <th>Data Emissão</th>
+                                <th>Vendedor</th>
                                 <th>Órgão</th>
                                 <th>Valor NF</th>
                                 <th>Status</th>
