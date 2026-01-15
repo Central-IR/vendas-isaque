@@ -711,6 +711,13 @@ tbody tr.row-entregue td {
     border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
+.badge.badge-vendedor {
+    background: rgba(204, 112, 0, 0.15);
+    color: #CC7000;
+    border: 1px solid rgba(204, 112, 0, 0.3);
+    font-weight: 700;
+}
+
 /* ============================================
    BUTTONS
    ============================================ */
