@@ -346,7 +346,7 @@ function updateDashboard() {
             totalPago += valor;
             quantidadeEntregue++;
         }
-        // A RECEBER: origem CONTROLE_FRETE com status ENTREGUE
+        // A RECEBER: origem CONTROLE_FRETE com status ENTREGUE (mas ainda não pago)
         else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
             totalAReceber += valor;
             quantidadeEntregue++;
@@ -377,8 +377,15 @@ function updateTable() {
     
     if (filterStatus === 'PAGO') {
         filteredVendas = filteredVendas.filter(v => v.origem === 'CONTAS_RECEBER' && v.data_pagamento);
-    } else if (filterStatus === 'ENTREGUE') {
-        filteredVendas = filteredVendas.filter(v => v.origem === 'CONTROLE_FRETE' && v.status_frete === 'ENTREGUE');
+    } else if (filterStatus) {
+        // Filtrar por qualquer status de frete
+        filteredVendas = filteredVendas.filter(v => {
+            if (v.origem === 'CONTROLE_FRETE') {
+                const statusNormalizado = (v.status_frete || '').toUpperCase().replace(/\s+/g, '_');
+                return statusNormalizado === filterStatus;
+            }
+            return false;
+        });
     }
     
     if (filteredVendas.length === 0) {
@@ -395,18 +402,35 @@ function updateTable() {
     filteredVendas.sort((a, b) => new Date(a.data_emissao) - new Date(b.data_emissao));
     
     container.innerHTML = filteredVendas.map(venda => {
-        let status = 'ENTREGUE';
-        let statusClass = 'entregue';
+        let status = '';
+        let statusClass = '';
         let rowClass = '';
         
+        // LÓGICA CORRETA DE STATUS
         if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
+            // Conta paga
             status = 'PAGO';
             statusClass = 'pago';
             rowClass = 'row-pago';
-        } else if (venda.origem === 'CONTROLE_FRETE' && venda.status_frete === 'ENTREGUE') {
-            status = 'ENTREGUE';
-            statusClass = 'entregue';
-            rowClass = 'row-entregue';
+        } else if (venda.origem === 'CONTROLE_FRETE') {
+            // Usa o status real do frete
+            status = venda.status_frete || 'EM_TRANSITO';
+            
+            // Define a classe baseada no status
+            if (status === 'ENTREGUE') {
+                statusClass = 'entregue';
+                rowClass = 'row-entregue';
+            } else if (status === 'EM_TRANSITO' || status === 'EM TRÂNSITO') {
+                statusClass = 'transito';
+            } else if (status === 'AGUARDANDO_COLETA' || status === 'AGUARDANDO COLETA') {
+                statusClass = 'aguardando';
+            } else if (status === 'EXTRAVIADO') {
+                statusClass = 'extraviado';
+            } else if (status === 'DEVOLVIDO') {
+                statusClass = 'devolvido';
+            } else {
+                statusClass = 'transito';
+            }
         }
         
         return `
@@ -417,7 +441,7 @@ function updateTable() {
             <td><strong>${formatCurrency(venda.valor_nf)}</strong></td>
             <td>${venda.tipo_nf || '-'}</td>
             <td>
-                <span class="badge ${statusClass}">${status}</span>
+                <span class="badge ${statusClass}">${status.replace(/_/g, ' ')}</span>
             </td>
             <td class="actions-cell">
                 <div class="actions">
