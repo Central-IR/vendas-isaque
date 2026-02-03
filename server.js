@@ -20,7 +20,7 @@ app.use(express.static('public'));
 // Função para sincronizar dados das tabelas fonte
 async function syncVendasIsaque() {
   try {
-    console.log('🔄 Sincronizando dados do Isaque...');
+    console.log('Dados sincronizados');
 
     // 1. Buscar todos os registros do Controle de Frete (Isaque)
     const { data: freteData, error: freteError } = await supabase
