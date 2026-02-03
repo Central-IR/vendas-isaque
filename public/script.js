@@ -440,12 +440,12 @@ function renderPagoModal() {
                 </thead>
                 <tbody>
                     ${paginaVendas.map((venda) => `
-                        <tr style="background: var(--bg-card);">
-                            <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_pagamento)}</td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color); text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
+                        <tr style="background: var(--bg-card); border-bottom: 2px solid #E5E7EB;">
+                            <td style="padding: 12px; border-left: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;"><strong>${venda.numero_nf}</strong></td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB;">${venda.nome_orgao}</td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; white-space: nowrap;">${formatDate(venda.data_pagamento)}</td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -530,11 +530,11 @@ function renderAReceberModal() {
                 </thead>
                 <tbody>
                     ${paginaVendas.map((venda) => `
-                        <tr style="background: var(--bg-card);">
-                            <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
-                            <td style="padding: 12px; border: 1px solid var(--border-color); text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
+                        <tr style="background: var(--bg-card); border-bottom: 2px solid #E5E7EB;">
+                            <td style="padding: 12px; border-left: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;"><strong>${venda.numero_nf}</strong></td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB;">${venda.nome_orgao}</td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
+                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
                         </tr>
                     `).join('')}
                 </tbody>
