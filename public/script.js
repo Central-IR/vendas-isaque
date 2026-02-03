@@ -665,7 +665,7 @@ function renderRelatorioAnual() {
                 }
                 
                 return `
-                <div style="padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
+                <div style="padding: 1rem; background: var(--bg-card); border: 1px solid #E5E7EB; border-radius: 8px;">
                     <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; color: var(--text-primary);">${mes.nome}</h4>
                     <div style="margin-bottom: 0.5rem;">
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">Faturado</div>
@@ -684,16 +684,16 @@ function renderRelatorioAnual() {
             }).join('')}
         </div>
         
-        <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid #E5E7EB; border-bottom: 1px solid #E5E7EB;">
             <button onclick="changeRelatorioPagina(-1)" ${relatorioPagina === 1 ? 'disabled' : ''} 
-                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">‹</button>
+                    style="padding: 8px 16px; border: 1px solid #E5E7EB; background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">‹</button>
             <span style="font-weight: 600;">${relatorioPagina}</span>
             <button onclick="changeRelatorioPagina(1)" ${relatorioPagina === totalPaginas ? 'disabled' : ''}
-                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">›</button>
+                    style="padding: 8px 16px; border: 1px solid #E5E7EB; background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">›</button>
         </div>
         
         <div style="display: flex; gap: 1rem; justify-content: center; max-width: 800px; margin: 0 auto;">
-            <div style="flex: 0 1 auto; min-width: 250px; text-align: center; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
+            <div style="flex: 0 1 auto; min-width: 250px; text-align: center; padding: 1rem; background: var(--bg-card); border: 1px solid #E5E7EB; border-radius: 8px;">
                 <div style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Total Faturado</div>
                 <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${formatCurrency(totalFaturado)}</div>
             </div>
