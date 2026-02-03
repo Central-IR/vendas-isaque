@@ -419,9 +419,15 @@ function renderPagoModal() {
         return;
     }
     
-    // Sem paginação - mostra todos os registros
+    // Paginação - 4 registros por página
+    const itensPorPagina = 4;
+    const totalPaginas = Math.ceil(vendasPagas.length / itensPorPagina);
+    const inicio = (pagoPagina - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+    const paginaVendas = vendasPagas.slice(inicio, fim);
+    
     modalBody.innerHTML = `
-        <div style="overflow-x: auto;">
+        <div style="max-height: 400px;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: var(--th-bg); color: var(--th-color);">
@@ -433,7 +439,7 @@ function renderPagoModal() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${vendasPagas.map((venda) => `
+                    ${paginaVendas.map((venda) => `
                         <tr style="background: var(--bg-card);">
                             <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
                             <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
@@ -451,7 +457,23 @@ function renderPagoModal() {
         </div>
     `;
     
-    pagination.innerHTML = '';
+    // Paginação
+    if (totalPaginas > 1) {
+        pagination.innerHTML = `
+            <button onclick="changePagoPagina(-1)" ${pagoPagina === 1 ? 'disabled' : ''} 
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; color: var(--text-primary); font-weight: 600;">‹</button>
+            <span style="padding: 0 1rem; font-weight: 600;">${pagoPagina}</span>
+            <button onclick="changePagoPagina(1)" ${pagoPagina === totalPaginas ? 'disabled' : ''}
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; color: var(--text-primary); font-weight: 600;">›</button>
+        `;
+    } else {
+        pagination.innerHTML = '';
+    }
+}
+
+function changePagoPagina(direction) {
+    pagoPagina += direction;
+    renderPagoModal();
 }
 
 // ============================================
@@ -488,15 +510,15 @@ function renderAReceberModal() {
         return;
     }
     
-    // Paginação - 5 registros por página
-    const itensPorPagina = 5;
+    // Paginação - 4 registros por página
+    const itensPorPagina = 4;
     const totalPaginas = Math.ceil(vendasAReceber.length / itensPorPagina);
     const inicio = (aReceberPagina - 1) * itensPorPagina;
     const fim = inicio + itensPorPagina;
     const paginaVendas = vendasAReceber.slice(inicio, fim);
     
     modalBody.innerHTML = `
-        <div style="overflow-x: auto;">
+        <div style="max-height: 400px;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: var(--th-bg); color: var(--th-color);">
@@ -528,10 +550,10 @@ function renderAReceberModal() {
     if (totalPaginas > 1) {
         pagination.innerHTML = `
             <button onclick="changeAReceberPagina(-1)" ${aReceberPagina === 1 ? 'disabled' : ''} 
-                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px;">‹</button>
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; color: var(--text-primary); font-weight: 600;">‹</button>
             <span style="padding: 0 1rem; font-weight: 600;">${aReceberPagina}</span>
             <button onclick="changeAReceberPagina(1)" ${aReceberPagina === totalPaginas ? 'disabled' : ''}
-                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px;">›</button>
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; color: var(--text-primary); font-weight: 600;">›</button>
         `;
     } else {
         pagination.innerHTML = '';
