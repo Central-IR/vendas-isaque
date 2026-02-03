@@ -12,6 +12,7 @@ let lastDataHash = '';
 let pagoPagina = 1;
 let aReceberPagina = 1;
 let relatorioAno = new Date().getFullYear();
+let relatorioPagina = 1;
 
 console.log('🚀 Vendas Isaque iniciada');
 console.log('📍 API URL:', API_URL);
@@ -218,9 +219,8 @@ function updateDisplay() {
 }
 
 function updateDashboard() {
-    const hoje = new Date();
-    const mesAtual = hoje.getMonth();
-    const anoAtual = hoje.getFullYear();
+    const mesSelecionado = currentMonth.getMonth();
+    const anoSelecionado = currentMonth.getFullYear();
     
     let totalPagoMes = 0;
     let totalFaturadoMes = 0;
@@ -231,12 +231,16 @@ function updateDashboard() {
         const valor = parseFloat(venda.valor_nf || 0);
         const dataEmissao = new Date(venda.data_emissao);
         
-        // PAGO e FATURADO: apenas do mês atual
-        if (dataEmissao.getMonth() === mesAtual && dataEmissao.getFullYear() === anoAtual) {
+        // PAGO e FATURADO: apenas do mês SELECIONADO
+        if (dataEmissao.getMonth() === mesSelecionado && dataEmissao.getFullYear() === anoSelecionado) {
             totalFaturadoMes += valor;
             
+            // PAGO: verifica se tem data de pagamento no mês selecionado
             if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
-                totalPagoMes += valor;
+                const dataPagamento = new Date(venda.data_pagamento);
+                if (dataPagamento.getMonth() === mesSelecionado && dataPagamento.getFullYear() === anoSelecionado) {
+                    totalPagoMes += valor;
+                }
             }
         }
         
@@ -381,22 +385,21 @@ function closePagoModal() {
 }
 
 function renderPagoModal() {
-    const hoje = new Date();
-    const mesAtual = hoje.getMonth();
-    const anoAtual = hoje.getFullYear();
+    const mesSelecionado = currentMonth.getMonth();
+    const anoSelecionado = currentMonth.getFullYear();
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     
     document.getElementById('pagoModalTitulo').textContent = 
-        `Pagamentos de ${months[mesAtual]} ${anoAtual}`;
+        `Pagamentos de ${months[mesSelecionado]} ${anoSelecionado}`;
     
-    // Filtrar pagamentos do mês atual ordenados por data de emissão crescente
+    // Filtrar pagamentos do mês SELECIONADO ordenados por data de emissão crescente
     const vendasPagas = vendas
         .filter(v => {
             if (v.origem !== 'CONTAS_RECEBER' || !v.data_pagamento) return false;
             const dataPagamento = new Date(v.data_pagamento);
-            return dataPagamento.getMonth() === mesAtual && 
-                   dataPagamento.getFullYear() === anoAtual;
+            return dataPagamento.getMonth() === mesSelecionado && 
+                   dataPagamento.getFullYear() === anoSelecionado;
         })
         .sort((a, b) => new Date(a.data_emissao) - new Date(b.data_emissao));
     
@@ -415,12 +418,7 @@ function renderPagoModal() {
         return;
     }
     
-    // Paginação - todos os registros em uma página só
-    const totalPaginas = Math.ceil(vendasPagas.length / 999999); // Mostra todos
-    const inicio = 0;
-    const fim = vendasPagas.length;
-    const paginaVendas = vendasPagas.slice(inicio, fim);
-    
+    // Sem paginação - mostra todos os registros
     modalBody.innerHTML = `
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -434,7 +432,7 @@ function renderPagoModal() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${paginaVendas.map((venda, index) => `
+                    ${vendasPagas.map((venda, index) => `
                         <tr style="background: ${index % 2 === 0 ? 'var(--bg-card)' : 'var(--table-stripe)'};">
                             <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
                             <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
@@ -452,21 +450,7 @@ function renderPagoModal() {
         </div>
     `;
     
-    // Paginação (se houver mais de uma página no futuro)
-    if (totalPaginas > 1) {
-        pagination.innerHTML = `
-            <button onclick="changePagoPagina(-1)" ${pagoPagina === 1 ? 'disabled' : ''}>‹</button>
-            <span>${pagoPagina}</span>
-            <button onclick="changePagoPagina(1)" ${pagoPagina === totalPaginas ? 'disabled' : ''}>›</button>
-        `;
-    } else {
-        pagination.innerHTML = '';
-    }
-}
-
-function changePagoPagina(direction) {
-    pagoPagina += direction;
-    renderPagoModal();
+    pagination.innerHTML = '';
 }
 
 // ============================================
@@ -563,6 +547,7 @@ function changeAReceberPagina(direction) {
 // ============================================
 function openRelatorioAnualModal() {
     relatorioAno = new Date().getFullYear();
+    relatorioPagina = 1;
     renderRelatorioAnual();
     document.getElementById('relatorioAnualModal').classList.add('show');
 }
@@ -573,6 +558,12 @@ function closeRelatorioAnualModal() {
 
 function changeRelatorioYear(direction) {
     relatorioAno += direction;
+    relatorioPagina = 1;
+    renderRelatorioAnual();
+}
+
+function changeRelatorioPagina(direction) {
+    relatorioPagina += direction;
     renderRelatorioAnual();
 }
 
@@ -591,14 +582,16 @@ function renderRelatorioAnual() {
             const dataEmissao = new Date(venda.data_emissao);
             const valor = parseFloat(venda.valor_nf || 0);
             
+            // Faturado: conta pela data de emissão
             if (dataEmissao.getFullYear() === relatorioAno && dataEmissao.getMonth() === index) {
                 faturado += valor;
-                
-                if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
-                    const dataPagamento = new Date(venda.data_pagamento);
-                    if (dataPagamento.getFullYear() === relatorioAno && dataPagamento.getMonth() === index) {
-                        pago += valor;
-                    }
+            }
+            
+            // Pago: conta pela data de pagamento
+            if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
+                const dataPagamento = new Date(venda.data_pagamento);
+                if (dataPagamento.getFullYear() === relatorioAno && dataPagamento.getMonth() === index) {
+                    pago += valor;
                 }
             }
         });
@@ -606,15 +599,22 @@ function renderRelatorioAnual() {
         return { nome, faturado, pago };
     });
     
-    // Calcular totais gerais
+    // Paginação - 3 meses por página
+    const mesesPorPagina = 3;
+    const totalPaginas = Math.ceil(dadosPorMes.length / mesesPorPagina);
+    const inicio = (relatorioPagina - 1) * mesesPorPagina;
+    const fim = inicio + mesesPorPagina;
+    const mesesPagina = dadosPorMes.slice(inicio, fim);
+    
+    // Calcular totais gerais do ano inteiro
     const totalFaturado = dadosPorMes.reduce((sum, m) => sum + m.faturado, 0);
     const totalPago = dadosPorMes.reduce((sum, m) => sum + m.pago, 0);
     
     const modalBody = document.getElementById('relatorioAnualBody');
     
     modalBody.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-            ${dadosPorMes.map(mes => `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            ${mesesPagina.map(mes => `
                 <div style="padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
                     <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; color: var(--text-primary);">${mes.nome}</h4>
                     <div style="margin-bottom: 0.5rem;">
@@ -627,6 +627,14 @@ function renderRelatorioAnual() {
                     </div>
                 </div>
             `).join('')}
+        </div>
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+            <button onclick="changeRelatorioPagina(-1)" ${relatorioPagina === 1 ? 'disabled' : ''} 
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600;">‹</button>
+            <span style="font-weight: 600;">${relatorioPagina}</span>
+            <button onclick="changeRelatorioPagina(1)" ${relatorioPagina === totalPaginas ? 'disabled' : ''}
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600;">›</button>
         </div>
         
         <div style="display: flex; gap: 1rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 8px; border: 2px solid var(--border-color);">
