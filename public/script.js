@@ -638,7 +638,10 @@ function renderRelatorioAnual() {
     modalBody.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
             ${mesesPagina.map((mes, indexPagina) => {
+                // Usar o índice real do mês no ano (0-11)
                 const mesIndex = inicio + indexPagina;
+                
+                // Buscar o mês anterior no array completo dadosPorMes
                 const mesAnterior = mesIndex > 0 ? dadosPorMes[mesIndex - 1] : null;
                 
                 // Calcular tendências
@@ -683,18 +686,18 @@ function renderRelatorioAnual() {
         
         <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
             <button onclick="changeRelatorioPagina(-1)" ${relatorioPagina === 1 ? 'disabled' : ''} 
-                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600;">‹</button>
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">‹</button>
             <span style="font-weight: 600;">${relatorioPagina}</span>
             <button onclick="changeRelatorioPagina(1)" ${relatorioPagina === totalPaginas ? 'disabled' : ''}
-                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600;">›</button>
+                    style="padding: 8px 16px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">›</button>
         </div>
         
-        <div style="display: flex; gap: 1rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 8px; border: 2px solid var(--border-color);">
-            <div style="flex: 1; text-align: center; padding: 1rem; background: var(--bg-card); border-radius: 8px;">
+        <div style="display: flex; gap: 1rem; justify-content: center; max-width: 800px; margin: 0 auto;">
+            <div style="flex: 0 1 auto; min-width: 250px; text-align: center; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
                 <div style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Total Faturado</div>
                 <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${formatCurrency(totalFaturado)}</div>
             </div>
-            <div style="flex: 1; text-align: center; padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
+            <div style="flex: 0 1 auto; min-width: 250px; text-align: center; padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
                 <div style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Total Pago</div>
                 <div style="font-size: 1.5rem; font-weight: 700; color: #22C55E;">${formatCurrency(totalPago)}</div>
             </div>
