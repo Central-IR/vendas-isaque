@@ -440,12 +440,12 @@ function renderPagoModal() {
                 </thead>
                 <tbody>
                     ${paginaVendas.map((venda) => `
-                        <tr style="background: var(--bg-card); border-bottom: 2px solid #E5E7EB;">
-                            <td style="padding: 12px; border-left: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;"><strong>${venda.numero_nf}</strong></td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB;">${venda.nome_orgao}</td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; white-space: nowrap;">${formatDate(venda.data_pagamento)}</td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
+                        <tr style="background: var(--bg-card);">
+                            <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_pagamento)}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -530,11 +530,11 @@ function renderAReceberModal() {
                 </thead>
                 <tbody>
                     ${paginaVendas.map((venda) => `
-                        <tr style="background: var(--bg-card); border-bottom: 2px solid #E5E7EB;">
-                            <td style="padding: 12px; border-left: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;"><strong>${venda.numero_nf}</strong></td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB;">${venda.nome_orgao}</td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
-                            <td style="padding: 12px; border-right: 1px solid #E5E7EB; text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
+                        <tr style="background: var(--bg-card);">
+                            <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
+                            <td style="padding: 12px; border: 1px solid var(--border-color); text-align: right;"><strong>${formatCurrency(venda.valor_nf)}</strong></td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -665,7 +665,7 @@ function renderRelatorioAnual() {
                 }
                 
                 return `
-                <div style="padding: 1rem; background: var(--bg-card); border: 1px solid #E5E7EB; border-radius: 8px;">
+                <div style="padding: 1rem; background: var(--bg-card); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 8px;">
                     <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; color: var(--text-primary);">${mes.nome}</h4>
                     <div style="margin-bottom: 0.5rem;">
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">Faturado</div>
@@ -684,16 +684,16 @@ function renderRelatorioAnual() {
             }).join('')}
         </div>
         
-        <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid #E5E7EB; border-bottom: 1px solid #E5E7EB;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid rgba(107, 114, 128, 0.2); border-bottom: 1px solid rgba(107, 114, 128, 0.2);">
             <button onclick="changeRelatorioPagina(-1)" ${relatorioPagina === 1 ? 'disabled' : ''} 
-                    style="padding: 8px 16px; border: 1px solid #E5E7EB; background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">‹</button>
+                    style="padding: 8px 16px; border: 1px solid rgba(107, 114, 128, 0.2); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">‹</button>
             <span style="font-weight: 600;">${relatorioPagina}</span>
             <button onclick="changeRelatorioPagina(1)" ${relatorioPagina === totalPaginas ? 'disabled' : ''}
-                    style="padding: 8px 16px; border: 1px solid #E5E7EB; background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">›</button>
+                    style="padding: 8px 16px; border: 1px solid rgba(107, 114, 128, 0.2); background: var(--bg-card); cursor: pointer; border-radius: 4px; font-weight: 600; color: var(--text-primary);">›</button>
         </div>
         
         <div style="display: flex; gap: 1rem; justify-content: center; max-width: 800px; margin: 0 auto;">
-            <div style="flex: 0 1 auto; min-width: 250px; text-align: center; padding: 1rem; background: var(--bg-card); border: 1px solid #E5E7EB; border-radius: 8px;">
+            <div style="flex: 0 1 auto; min-width: 250px; text-align: center; padding: 1rem; background: var(--bg-card); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 8px;">
                 <div style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Total Faturado</div>
                 <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${formatCurrency(totalFaturado)}</div>
             </div>
