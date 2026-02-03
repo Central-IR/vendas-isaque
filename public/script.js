@@ -637,19 +637,48 @@ function renderRelatorioAnual() {
     
     modalBody.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            ${mesesPagina.map(mes => `
+            ${mesesPagina.map((mes, indexPagina) => {
+                const mesIndex = inicio + indexPagina;
+                const mesAnterior = mesIndex > 0 ? dadosPorMes[mesIndex - 1] : null;
+                
+                // Calcular tendências
+                let faturadoTendencia = '';
+                let pagoTendencia = '';
+                
+                if (mesAnterior) {
+                    // Tendência Faturado
+                    if (mes.faturado > mesAnterior.faturado) {
+                        faturadoTendencia = '<span style="color: #22C55E; font-size: 1.2rem; margin-left: 0.25rem;">▲</span>';
+                    } else if (mes.faturado < mesAnterior.faturado) {
+                        faturadoTendencia = '<span style="color: #EF4444; font-size: 1.2rem; margin-left: 0.25rem;">▼</span>';
+                    }
+                    
+                    // Tendência Pago
+                    if (mes.pago > mesAnterior.pago) {
+                        pagoTendencia = '<span style="color: #22C55E; font-size: 1.2rem; margin-left: 0.25rem;">▲</span>';
+                    } else if (mes.pago < mesAnterior.pago) {
+                        pagoTendencia = '<span style="color: #EF4444; font-size: 1.2rem; margin-left: 0.25rem;">▼</span>';
+                    }
+                }
+                
+                return `
                 <div style="padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
                     <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; color: var(--text-primary);">${mes.nome}</h4>
                     <div style="margin-bottom: 0.5rem;">
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">Faturado</div>
-                        <div style="font-size: 1rem; font-weight: 700; color: var(--text-primary);">${formatCurrency(mes.faturado)}</div>
+                        <div style="font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center;">
+                            ${formatCurrency(mes.faturado)}${faturadoTendencia}
+                        </div>
                     </div>
                     <div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary);">Pago</div>
-                        <div style="font-size: 1rem; font-weight: 700; color: #22C55E;">${formatCurrency(mes.pago)}</div>
+                        <div style="font-size: 1rem; font-weight: 700; color: #22C55E; display: flex; align-items: center;">
+                            ${formatCurrency(mes.pago)}${pagoTendencia}
+                        </div>
                     </div>
                 </div>
-            `).join('')}
+            `;
+            }).join('')}
         </div>
         
         <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
