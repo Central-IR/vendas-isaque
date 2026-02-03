@@ -231,16 +231,16 @@ function updateDashboard() {
         const valor = parseFloat(venda.valor_nf || 0);
         const dataEmissao = new Date(venda.data_emissao);
         
-        // PAGO e FATURADO: apenas do mês SELECIONADO
+        // FATURADO: apenas do mês SELECIONADO (pela data de emissão)
         if (dataEmissao.getMonth() === mesSelecionado && dataEmissao.getFullYear() === anoSelecionado) {
             totalFaturadoMes += valor;
-            
-            // PAGO: verifica se tem data de pagamento no mês selecionado
-            if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
-                const dataPagamento = new Date(venda.data_pagamento);
-                if (dataPagamento.getMonth() === mesSelecionado && dataPagamento.getFullYear() === anoSelecionado) {
-                    totalPagoMes += valor;
-                }
+        }
+        
+        // PAGO: apenas do mês SELECIONADO (pela data de PAGAMENTO)
+        if (venda.origem === 'CONTAS_RECEBER' && venda.data_pagamento) {
+            const dataPagamento = new Date(venda.data_pagamento);
+            if (dataPagamento.getMonth() === mesSelecionado && dataPagamento.getFullYear() === anoSelecionado) {
+                totalPagoMes += valor;
             }
         }
         
@@ -393,7 +393,8 @@ function renderPagoModal() {
     document.getElementById('pagoModalTitulo').textContent = 
         `Pagamentos de ${months[mesSelecionado]} ${anoSelecionado}`;
     
-    // Filtrar pagamentos do mês SELECIONADO ordenados por data de emissão crescente
+    // Filtrar pagamentos pela DATA DE PAGAMENTO do mês SELECIONADO
+    // Ordenados por data de pagamento crescente
     const vendasPagas = vendas
         .filter(v => {
             if (v.origem !== 'CONTAS_RECEBER' || !v.data_pagamento) return false;
@@ -401,7 +402,7 @@ function renderPagoModal() {
             return dataPagamento.getMonth() === mesSelecionado && 
                    dataPagamento.getFullYear() === anoSelecionado;
         })
-        .sort((a, b) => new Date(a.data_emissao) - new Date(b.data_emissao));
+        .sort((a, b) => new Date(a.data_pagamento) - new Date(b.data_pagamento));
     
     const totalPago = vendasPagas.reduce((sum, v) => sum + (parseFloat(v.valor_nf) || 0), 0);
     
@@ -432,8 +433,8 @@ function renderPagoModal() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${vendasPagas.map((venda, index) => `
-                        <tr style="background: ${index % 2 === 0 ? 'var(--bg-card)' : 'var(--table-stripe)'};">
+                    ${vendasPagas.map((venda) => `
+                        <tr style="background: var(--bg-card);">
                             <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
                             <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
                             <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
@@ -506,8 +507,8 @@ function renderAReceberModal() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${paginaVendas.map((venda, index) => `
-                        <tr style="background: ${index % 2 === 0 ? 'var(--bg-card)' : 'var(--table-stripe)'};">
+                    ${paginaVendas.map((venda) => `
+                        <tr style="background: var(--bg-card);">
                             <td style="padding: 12px; border: 1px solid var(--border-color);"><strong>${venda.numero_nf}</strong></td>
                             <td style="padding: 12px; border: 1px solid var(--border-color);">${venda.nome_orgao}</td>
                             <td style="padding: 12px; border: 1px solid var(--border-color); white-space: nowrap;">${formatDate(venda.data_emissao)}</td>
